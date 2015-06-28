@@ -1,0 +1,1 @@
+ALTER TABLE moments ADD COLUMN moment_type VARCHAR(56) NOT NULL;

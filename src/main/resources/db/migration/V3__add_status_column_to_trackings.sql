@@ -1,0 +1,1 @@
+ALTER TABLE trackings ADD COLUMN status VARCHAR(56) NOT NULL;

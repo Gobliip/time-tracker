@@ -1,103 +1,105 @@
 package com.gobliip.chronos.server.entities;
 
-import java.time.Instant;
-
-import javax.persistence.Column;
-import javax.persistence.Convert;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-
 import com.gobliip.jpa.converters.InstantPersistenceConverter;
+
+import javax.persistence.*;
+import java.time.Instant;
 
 @Entity(name = "moments")
 public class Moment extends BaseEntity {
 
-	public static enum MomentType {
-		PAUSE, MEMO, RESUME, STOP, START
-	}
+    public static enum MomentType {
+        PAUSE, MEMO, RESUME, STOP, START
+    }
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 5527675255255574923L;
-	
-	public Moment(MomentType type, Tracking tracking){
-		this(type);
-		this.tracking = tracking;
-	}
-	
-	public Moment(MomentType type){
-		this();
-		this.type = type;
-	}
-	
-	public Moment() {
-		this.momentInstant = Instant.now();
-	}
+    /**
+     *
+     */
+    private static final long serialVersionUID = 5527675255255574923L;
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Long id;
+    public Moment(MomentType type, Tracking tracking) {
+        this(type);
+        this.tracking = tracking;
+    }
 
-	@Convert(converter = InstantPersistenceConverter.class)
-	@Column(name = "moment_instant", nullable = false)
-	private Instant momentInstant;
+    public Moment(MomentType type) {
+        this();
+        this.type = type;
+    }
 
-	@Column(name = "memo", length = 1024)
-	private String memo;
+    public Moment() {
+        this.momentInstant = Instant.now();
+    }
 
-	@Column(name = "moment_type", length = 56, nullable = false)
-	@Enumerated(EnumType.STRING)
-	private MomentType type;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
 
-	@ManyToOne
-	@JoinColumn(name = "tracking_id", nullable = false)
-	private Tracking tracking;
+    @Convert(converter = InstantPersistenceConverter.class)
+    @Column(name = "moment_instant", nullable = false)
+    private Instant momentInstant;
 
-	public Long getId() {
-		return id;
-	}
+    @Column(name = "memo", length = 1024)
+    private String memo;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Column(name = "moment_type", length = 56, nullable = false)
+    @Enumerated(EnumType.STRING)
+    private MomentType type;
 
-	public Instant getMomentInstant() {
-		return momentInstant;
-	}
+    @ManyToOne
+    @JoinColumn(name = "tracking_id", nullable = false)
+    private Tracking tracking;
 
-	public void setMomentInstant(Instant momentInstant) {
-		this.momentInstant = momentInstant;
-	}
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "attachment")
+    private byte[] attachment;
 
-	public String getMemo() {
-		return memo;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public void setMemo(String memo) {
-		this.memo = memo;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public MomentType getType() {
-		return type;
-	}
+    public Instant getMomentInstant() {
+        return momentInstant;
+    }
 
-	public void setType(MomentType type) {
-		this.type = type;
-	}
+    public void setMomentInstant(Instant momentInstant) {
+        this.momentInstant = momentInstant;
+    }
 
-	public Tracking getTracking() {
-		return tracking;
-	}
+    public String getMemo() {
+        return memo;
+    }
 
-	public void setTracking(Tracking tracking) {
-		this.tracking = tracking;
-	}
+    public void setMemo(String memo) {
+        this.memo = memo;
+    }
 
+    public MomentType getType() {
+        return type;
+    }
+
+    public void setType(MomentType type) {
+        this.type = type;
+    }
+
+    public Tracking getTracking() {
+        return tracking;
+    }
+
+    public void setTracking(Tracking tracking) {
+        this.tracking = tracking;
+    }
+
+    public byte[] getAttachment() {
+        return attachment;
+    }
+
+    public void setAttachment(byte[] attachment) {
+        this.attachment = attachment;
+    }
 }

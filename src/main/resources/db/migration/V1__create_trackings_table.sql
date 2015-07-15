@@ -1,0 +1,8 @@
+CREATE TABLE trackings(
+	id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+	owner VARCHAR(256) NOT NULL,
+	start_date DATETIME NOT NULL,
+	end_date DATETIME,
+	created_at DATETIME NOT NULL, 
+	updated_at DATETIME
+);

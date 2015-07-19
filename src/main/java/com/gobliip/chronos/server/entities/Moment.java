@@ -1,5 +1,6 @@
 package com.gobliip.chronos.server.entities;
 
+import com.fasterxml.jackson.annotation.*;
 import com.gobliip.jpa.converters.InstantPersistenceConverter;
 
 import javax.persistence.*;
@@ -37,6 +38,7 @@ public class Moment extends BaseEntity {
 
     @Convert(converter = InstantPersistenceConverter.class)
     @Column(name = "moment_instant", nullable = false)
+    @JsonProperty("instant")
     private Instant momentInstant;
 
     @Column(name = "memo", length = 1024)
@@ -46,13 +48,17 @@ public class Moment extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private MomentType type;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tracking_id", nullable = false)
+    @JsonIdentityInfo(generator=ObjectIdGenerators.PropertyGenerator.class, property="id")
+    @JsonIdentityReference(alwaysAsId=true)
+    @JsonProperty("tracking_id")
     private Tracking tracking;
 
     @Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "attachment")
+    @JsonIgnore
     private byte[] attachment;
 
     public Long getId() {

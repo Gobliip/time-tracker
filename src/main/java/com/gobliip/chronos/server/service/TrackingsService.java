@@ -2,30 +2,21 @@ package com.gobliip.chronos.server.service;
 
 import com.gobliip.chronos.domain.exception.*;
 import com.gobliip.chronos.server.audit.ResourceAudit;
-import com.gobliip.chronos.server.entities.Attachment;
 import com.gobliip.chronos.server.entities.Moment;
 import com.gobliip.chronos.server.entities.Moment.MomentType;
 import com.gobliip.chronos.server.entities.Tracking;
 import com.gobliip.chronos.server.entities.Tracking.TrackingStatus;
-import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
-import javax.validation.Validator;
 import java.time.Instant;
 import java.util.List;
 
 @Service
 public class TrackingsService {
-
-//	private static final Logger logger = LoggerFactory
-//			.getLogger(TrackingsService.class);
-
-    @Autowired
-    private Validator validator;
 
     @Autowired
     private EntityManager entityManager;

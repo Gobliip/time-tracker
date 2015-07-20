@@ -15,6 +15,7 @@ import org.springframework.util.Assert;
 
 import javax.persistence.EntityManager;
 import java.time.Instant;
+import java.util.Optional;
 
 /**
  * Created by lsamayoa on 19/07/15.
@@ -61,7 +62,7 @@ public class MomentsService {
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Moment createMoment(String ownerId, Long trackingId, Moment.MomentType type, byte[] attachmentBytes, String memo)
+    public Moment createMoment(String ownerId, Long trackingId, Moment.MomentType type, Optional<byte[]> attachmentBytes, Optional<String> memo)
             throws InvalidTrackingStateException {
         Assert.notNull(trackingId);
         Assert.state(trackingId > 0);
@@ -74,7 +75,7 @@ public class MomentsService {
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Moment createMoment(String ownerId, Tracking tracking, Moment.MomentType type, byte[] attachmentBytes, String memo)
+    public Moment createMoment(String ownerId, Tracking tracking, Moment.MomentType type, Optional<byte[]> attachmentBytes, Optional<String> memo)
             throws InvalidTrackingStateException {
         Assert.hasText(ownerId);
         Assert.notNull(type);
@@ -82,7 +83,7 @@ public class MomentsService {
 
         final Moment moment = new Moment();
         moment.setTracking(tracking);
-        moment.setMemo(memo);
+        if(memo.isPresent()) moment.setMemo(memo.get());
         moment.setMomentInstant(Instant.now());
         moment.setType(type);
 
@@ -128,11 +129,11 @@ public class MomentsService {
 
         entityManager.persist(moment);
 
-        if (attachmentBytes != null && attachmentBytes.length > 0) {
+        if (attachmentBytes.isPresent()) {
             final Attachment attachment = new Attachment();
             attachment.setLocation(Attachment.AttachmentLocation.DATABASE);
             attachment.setStatus(Attachment.AttachmentStatus.MANTAINANCE);
-            attachment.setContent(attachmentBytes);
+            attachment.setContent(attachmentBytes.get());
             attachment.setUrl(ATTACHMENT_URL_BEING_GENERATED_IMAGE_URL);
             attachment.setMoment(moment);
             moment.getAttachments().add(attachment);

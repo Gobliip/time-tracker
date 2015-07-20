@@ -3,7 +3,6 @@ package com.gobliip.chronos.server.service;
 import com.gobliip.chronos.server.audit.ResourceAudit;
 import com.gobliip.chronos.server.entities.Attachment;
 import com.gobliip.chronos.server.entities.Moment;
-import com.gobliip.chronos.server.entities.MomentsRepository;
 import com.gobliip.chronos.server.entities.Tracking;
 import com.gobliip.chronos.server.service.exception.InvalidTrackingStateException;
 import org.slf4j.Logger;
@@ -14,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
+import javax.persistence.EntityManager;
 import java.time.Instant;
 
 /**
@@ -46,7 +46,7 @@ public class MomentsService {
     }
 
     @Autowired
-    private MomentsRepository momentsRepository;
+    private EntityManager entityManager;
 
     @Autowired
     private TrackingsService trackingsService;
@@ -83,10 +83,10 @@ public class MomentsService {
             throw new InvalidTrackingStateException(tracking, TrackingAction.CREATE_MEMO);
         }
 
-        final Moment result = momentsRepository.save(moment);
+        entityManager.persist(moment);
         attachment.setUrl("/attachments/" + attachment.getId()+ "/raw");
 
-        return result;
+        return moment;
     }
 
     public boolean validateTrackingAction(Tracking tracking, TrackingAction action){

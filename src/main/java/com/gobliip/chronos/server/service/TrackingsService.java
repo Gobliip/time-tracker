@@ -2,10 +2,12 @@ package com.gobliip.chronos.server.service;
 
 import com.gobliip.chronos.domain.exception.*;
 import com.gobliip.chronos.server.audit.ResourceAudit;
+import com.gobliip.chronos.server.entities.Attachment;
 import com.gobliip.chronos.server.entities.Moment;
 import com.gobliip.chronos.server.entities.Moment.MomentType;
 import com.gobliip.chronos.server.entities.Tracking;
 import com.gobliip.chronos.server.entities.Tracking.TrackingStatus;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
@@ -36,7 +38,7 @@ public class TrackingsService {
         tracking.setStart(Instant.now());
         tracking.setOwner(ownerName);
 
-        final Moment moment = new Moment(MomentType.START, tracking);
+        final Moment moment = new Moment(MomentType.START);
         tracking.addMoment(moment);
 
         entityManager.persist(tracking);
@@ -58,7 +60,7 @@ public class TrackingsService {
         final Moment moment = new Moment(MomentType.PAUSE, tracking);
         entityManager.persist(moment);
 
-        tracking.addMoment(moment);
+        tracking.setLastMoment(moment);
         tracking.setStatus(TrackingStatus.PAUSED);
         return tracking;
     }
@@ -77,7 +79,7 @@ public class TrackingsService {
         final Moment moment = new Moment(MomentType.RESUME, tracking);
         entityManager.persist(moment);
 
-        tracking.addMoment(moment);
+        tracking.setLastMoment(moment);
         tracking.setStatus(TrackingStatus.RUNNING);
 
         return tracking;
@@ -99,7 +101,7 @@ public class TrackingsService {
         final Moment stopMoment = new Moment(MomentType.STOP, tracking);
         entityManager.persist(stopMoment);
 
-        tracking.addMoment(stopMoment);
+        tracking.setLastMoment(stopMoment);
         tracking.setStatus(TrackingStatus.STOPPED);
         tracking.setEnd(Instant.now());
         return tracking;

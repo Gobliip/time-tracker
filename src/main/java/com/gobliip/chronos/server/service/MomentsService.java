@@ -1,7 +1,10 @@
 package com.gobliip.chronos.server.service;
 
 import com.gobliip.chronos.server.audit.ResourceAudit;
-import com.gobliip.chronos.server.entities.*;
+import com.gobliip.chronos.server.entities.Attachment;
+import com.gobliip.chronos.server.entities.Moment;
+import com.gobliip.chronos.server.entities.MomentsRepository;
+import com.gobliip.chronos.server.entities.Tracking;
 import com.gobliip.chronos.server.service.exception.InvalidTrackingStateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
-import javax.persistence.EntityManager;
 import java.time.Instant;
 
 /**

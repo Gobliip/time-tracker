@@ -105,4 +105,31 @@ public class Moment extends BaseEntity {
     public void setAttachments(List<Attachment> attachments) {
         this.attachments = attachments;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Moment moment = (Moment) o;
+
+        if (!id.equals(moment.id)) return false;
+        if (!momentInstant.equals(moment.momentInstant)) return false;
+        if (memo != null ? !memo.equals(moment.memo) : moment.memo != null) return false;
+        if (type != moment.type) return false;
+        if (!tracking.equals(moment.tracking)) return false;
+        return !(attachments != null ? !attachments.equals(moment.attachments) : moment.attachments != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id.hashCode();
+        result = 31 * result + momentInstant.hashCode();
+        result = 31 * result + (memo != null ? memo.hashCode() : 0);
+        result = 31 * result + type.hashCode();
+        result = 31 * result + tracking.hashCode();
+        result = 31 * result + (attachments != null ? attachments.hashCode() : 0);
+        return result;
+    }
 }

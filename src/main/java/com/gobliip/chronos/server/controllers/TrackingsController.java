@@ -1,7 +1,9 @@
-package com.gobliip.chronos.server;
+package com.gobliip.chronos.server.controllers;
 
 import java.security.Principal;
+import java.util.List;
 
+import com.gobliip.chronos.server.entities.Moment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,16 +18,24 @@ import com.gobliip.chronos.server.entities.Tracking;
 import com.gobliip.chronos.server.service.TrackingsService;
 
 @RestController
-public class MainController {
+@RequestMapping("/trackings")
+public class TrackingsController {
 
 	@Autowired
 	private TrackingsService service;
 
 	@Secured("ROLE_USER")
-	@RequestMapping(value = "/", method = RequestMethod.GET, produces = "application/json")
+	@RequestMapping(value = "", method = RequestMethod.GET, produces = "application/json")
 	public Tracking crateTracking(Principal user) {
 		String userName = user.getName();
 		return service.createTracking(userName);
+	}
+
+	@Secured("ROLE_USER")
+	@RequestMapping(value = "/{trackingId}/moments", method = RequestMethod.GET, produces = "application/json")
+	public List<Moment> getTrackingMoments(Principal user, @PathVariable Long trackingId) {
+		String userName = user.getName();
+		return service.findMoments(userName, trackingId);
 	}
 
 	@Secured("ROLE_USER")

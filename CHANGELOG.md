@@ -5,6 +5,10 @@
 - Added moments API in `/moments`
 - Added `POST '/moments'` to create moments, MEMO moments are the only type currently supported
 - Removed Usage of Spring Data JPA repositories in favor of using EntityManager directly.
+- Added `HEARTBEAT` moment type to denote keep alive tracking
+- Added support for attachments and memos for CREATE, PAUSE, RESUME, STOP tracking actions
+- Added support for database stored `Attachement`
+- Added endpoint `/attachments/{attachmentId}/raw` to download raw attchment data
 
 0.0.1
 -----

@@ -5,6 +5,8 @@ import com.gobliip.jpa.converters.InstantPersistenceConverter;
 
 import javax.persistence.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity(name = "moments")
 public class Moment extends BaseEntity {
@@ -13,9 +15,6 @@ public class Moment extends BaseEntity {
         PAUSE, MEMO, RESUME, STOP, START
     }
 
-    /**
-     *
-     */
     private static final long serialVersionUID = 5527675255255574923L;
 
     public Moment(MomentType type, Tracking tracking) {
@@ -50,16 +49,14 @@ public class Moment extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tracking_id", nullable = false)
-    @JsonIdentityInfo(generator=ObjectIdGenerators.PropertyGenerator.class, property="id")
-    @JsonIdentityReference(alwaysAsId=true)
-    @JsonProperty("tracking_id")
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
+    @JsonProperty("trackingId")
     private Tracking tracking;
 
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "attachment")
-    @JsonIgnore
-    private byte[] attachment;
+    @OneToMany(mappedBy = "moment", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties({"location", "moment"})
+    private List<Attachment> attachments = new ArrayList<Attachment>();
 
     public Long getId() {
         return id;
@@ -101,11 +98,11 @@ public class Moment extends BaseEntity {
         this.tracking = tracking;
     }
 
-    public byte[] getAttachment() {
-        return attachment;
+    public List<Attachment> getAttachments() {
+        return attachments;
     }
 
-    public void setAttachment(byte[] attachment) {
-        this.attachment = attachment;
+    public void setAttachments(List<Attachment> attachments) {
+        this.attachments = attachments;
     }
 }

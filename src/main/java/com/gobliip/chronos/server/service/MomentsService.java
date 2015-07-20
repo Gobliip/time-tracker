@@ -1,9 +1,7 @@
 package com.gobliip.chronos.server.service;
 
 import com.gobliip.chronos.server.audit.ResourceAudit;
-import com.gobliip.chronos.server.entities.Moment;
-import com.gobliip.chronos.server.entities.MomentsRepository;
-import com.gobliip.chronos.server.entities.Tracking;
+import com.gobliip.chronos.server.entities.*;
 import com.gobliip.chronos.server.service.exception.InvalidTrackingStateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
+import javax.persistence.EntityManager;
 import java.time.Instant;
 
 /**
@@ -22,6 +21,7 @@ import java.time.Instant;
 public class MomentsService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MomentsService.class);
+    private static final String ATTACHMENT_URL_BEING_GENERATED_IMAGE_URL = "http://www.codemonkeyintraining.com/wp-content/uploads/2015/06/monkey-on-computer.jpg";
 
     public enum TrackingAction {
         CREATE_MEMO("create", "moment", "memo");
@@ -52,7 +52,7 @@ public class MomentsService {
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Moment createMoment(String ownerId, Long trackingId, Moment.MomentType type, byte[] attachment, String memo)
+    public Moment createMoment(String ownerId, Long trackingId, Moment.MomentType type, byte[] attachmentBytes, String memo)
             throws InvalidTrackingStateException {
         Assert.hasText(ownerId);
         Assert.notNull(trackingId);
@@ -63,18 +63,28 @@ public class MomentsService {
         final Tracking tracking = trackingsService.findTracking(ownerId, trackingId);
 
         final Moment moment = new Moment();
-        moment.setAttachment(attachment);
         moment.setTracking(tracking);
         moment.setMemo(memo);
         moment.setMomentInstant(Instant.now());
         moment.setType(type);
+
+        final Attachment attachment = new Attachment();
+        attachment.setLocation(Attachment.AttachmentLocation.DATABASE);
+        attachment.setStatus(Attachment.AttachmentStatus.MANTAINANCE);
+        attachment.setContent(attachmentBytes);
+        attachment.setUrl(ATTACHMENT_URL_BEING_GENERATED_IMAGE_URL);
+        attachment.setMoment(moment);
+        moment.getAttachments().add(attachment);
 
         if (!validateTrackingAction(tracking, TrackingAction.CREATE_MEMO)) {
             LOGGER.error("Tracking currently not running, imposibble to create new moment: {}", moment);
             throw new InvalidTrackingStateException(tracking, TrackingAction.CREATE_MEMO);
         }
 
-        return momentsRepository.save(moment);
+        final Moment result = momentsRepository.save(moment);
+        attachment.setUrl("/attachments/" + attachment.getId()+ "/raw");
+
+        return result;
     }
 
     public boolean validateTrackingAction(Tracking tracking, TrackingAction action){

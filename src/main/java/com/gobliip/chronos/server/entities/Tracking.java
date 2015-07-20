@@ -55,7 +55,7 @@ public class Tracking extends BaseEntity {
 	// I use lazy fetching because we will usually not fetch them this way...
 	// There should be moments > trackings
 	@JsonIgnore
-	@OneToMany(mappedBy = "tracking", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+	@OneToMany(mappedBy = "tracking", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.REFRESH, CascadeType.MERGE})
 	@NotEmpty
 	private List<Moment> moments = new LinkedList<Moment>();
 

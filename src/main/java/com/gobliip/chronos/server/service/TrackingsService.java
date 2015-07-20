@@ -2,7 +2,6 @@ package com.gobliip.chronos.server.service;
 
 import com.gobliip.chronos.domain.exception.*;
 import com.gobliip.chronos.server.audit.ResourceAudit;
-import com.gobliip.chronos.server.entities.Attachment;
 import com.gobliip.chronos.server.entities.Moment;
 import com.gobliip.chronos.server.entities.Moment.MomentType;
 import com.gobliip.chronos.server.entities.Tracking;
@@ -16,6 +15,7 @@ import org.springframework.util.Assert;
 import javax.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TrackingsService {
@@ -29,8 +29,8 @@ public class TrackingsService {
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
     public Tracking createTracking(final String principal,
-                                   final byte[] attachmentBytes,
-                                   final String memo) {
+                                   final Optional<byte[]> attachmentBytes,
+                                   final Optional<String> memo) {
         final Tracking tracking = new Tracking();
         tracking.setStatus(TrackingStatus.RUNNING);
         tracking.setStart(Instant.now());
@@ -48,8 +48,8 @@ public class TrackingsService {
     @Transactional(readOnly = false)
     public Tracking pauseTracking(final String userName,
                                   final Long trackingId,
-                                  final byte[] attachmentBytes,
-                                  final String memo) throws UnpausableTrackingException {
+                                  final Optional<byte[]> attachmentBytes,
+                                  final Optional<String> memo) throws UnpausableTrackingException {
         final Tracking tracking = findTracking(userName, trackingId);
 
         // Check it is an valid status
@@ -67,9 +67,9 @@ public class TrackingsService {
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
     public Tracking resumeTracking(final String userName,
-                                   Long trackingId,
-                                   final byte[] attachmentBytes,
-                                   final String memo) throws UnresumableTrackingException {
+                                   final Long trackingId,
+                                   final Optional<byte[]> attachmentBytes,
+                                   final Optional<String> memo) throws UnresumableTrackingException {
         final Tracking tracking = findTracking(userName, trackingId);
 
         // Check it is an valid status
@@ -88,8 +88,8 @@ public class TrackingsService {
     @Transactional(readOnly = false)
     public Tracking stopTracking(final String userName,
                                  final Long trackingId,
-                                 final byte[] attachmentBytes,
-                                 final String memo) throws UnstopableTrackingException {
+                                 final Optional<byte[]> attachmentBytes,
+                                 final Optional<String> memo) throws UnstopableTrackingException {
         final Tracking tracking = findTracking(userName, trackingId);
 
         // Check it is an stopable status
@@ -108,13 +108,13 @@ public class TrackingsService {
 
     @ResourceAudit
     @Secured("ROLE_USER")
-    public Tracking doHeartbeat(String principal, Long trackingId, byte[] attachmentBytes, String memo) {
+    public Tracking doHeartbeat(String principal, Long trackingId, Optional<byte[]> attachmentBytes, Optional<String> memo) {
         return addMoment(principal, trackingId, MomentType.HEARTBEAT, attachmentBytes, memo);
     }
 
     @ResourceAudit
     @Secured("ROLE_USER")
-    public Tracking addMemo(String principal, Long trackingId, byte[] attachmentBytes, String memo) {
+    public Tracking addMemo(String principal, Long trackingId, Optional<byte[]> attachmentBytes, Optional<String> memo) {
         return addMoment(principal, trackingId, MomentType.MEMO, attachmentBytes, memo);
     }
 
@@ -142,13 +142,13 @@ public class TrackingsService {
         return tracking;
     }
 
-    protected Tracking addMoment(String principal, Long trackingId, MomentType momentType, byte[] attachmentBytes, String memo) {
+    protected Tracking addMoment(String principal, Long trackingId, MomentType momentType, Optional<byte[]> attachmentBytes, Optional<String> memo) {
         final Tracking tracking = findTracking(principal, trackingId);
         addMoment(principal, tracking, momentType, attachmentBytes, memo);
         return tracking;
     }
 
-    protected Moment addMoment(String principal, Tracking tracking, MomentType momentType, byte[] attachmentBytes, String memo) {
+    protected Moment addMoment(String principal, Tracking tracking, MomentType momentType, Optional<byte[]> attachmentBytes, Optional<String> memo) {
         Assert.notNull(principal);
         Assert.state(principal.equals(tracking.getOwner()));
 

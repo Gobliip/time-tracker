@@ -1,0 +1,1 @@
+ALTER TABLE work_periods ADD COLUMN parent_id INT UNSINGED;

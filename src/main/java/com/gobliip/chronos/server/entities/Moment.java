@@ -54,7 +54,7 @@ public class Moment extends BaseEntity {
     @JsonProperty("trackingId")
     private Tracking tracking;
 
-    @OneToMany(mappedBy = "moment", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "moment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties({"location", "moment"})
     private List<Attachment> attachments = new ArrayList<Attachment>();
 

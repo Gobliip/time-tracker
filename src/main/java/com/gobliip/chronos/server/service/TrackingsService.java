@@ -119,7 +119,7 @@ public class TrackingsService {
 		}
 
 		if (!tracking.getOwner().equals(userName)) {
-			throw new ResourceNotOwnedException("TRACKING", trackingId, userName);
+			throw new ResourceNotOwnedException("Tracking", trackingId, userName);
 		}
 		return tracking;
 	}

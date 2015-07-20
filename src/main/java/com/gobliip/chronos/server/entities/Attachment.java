@@ -41,6 +41,9 @@ public class Attachment extends BaseEntity {
     @Column(name = "location")
     private AttachmentLocation location;
 
+    @Column(name = "is_public")
+    private boolean isPublic;
+
     @ManyToOne
     @JsonIgnore
     private Moment moment;
@@ -83,6 +86,14 @@ public class Attachment extends BaseEntity {
 
     public void setLocation(AttachmentLocation location) {
         this.location = location;
+    }
+
+    public boolean isPublic() {
+        return isPublic;
+    }
+
+    public void setIsPublic(boolean isPublic) {
+        this.isPublic = isPublic;
     }
 
     public Moment getMoment() {

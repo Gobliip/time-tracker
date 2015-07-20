@@ -19,7 +19,7 @@ import com.gobliip.jpa.converters.InstantPersistenceConverter;
 @Entity(name = "trackings")
 public class Tracking extends BaseEntity {
 
-    public static enum TrackingStatus {
+    public enum TrackingStatus {
         ISSUED, RUNNING, PAUSED, STOPPED
     }
 

@@ -1,133 +1,139 @@
 package com.gobliip.chronos.server.service;
 
-import java.time.Instant;
-
-import javax.validation.Validator;
-
+import com.gobliip.chronos.domain.exception.*;
+import com.gobliip.chronos.server.audit.ResourceAudit;
+import com.gobliip.chronos.server.entities.Attachment;
+import com.gobliip.chronos.server.entities.Moment;
+import com.gobliip.chronos.server.entities.Moment.MomentType;
+import com.gobliip.chronos.server.entities.Tracking;
+import com.gobliip.chronos.server.entities.Tracking.TrackingStatus;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.audit.AuditEventRepository;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gobliip.chronos.domain.exception.ResourceNotFoundException;
-import com.gobliip.chronos.domain.exception.ResourceNotOwnedException;
-import com.gobliip.chronos.domain.exception.UnpausableTrackingException;
-import com.gobliip.chronos.domain.exception.UnresumableTrackingException;
-import com.gobliip.chronos.domain.exception.UnstopableTrackingException;
-import com.gobliip.chronos.server.audit.ResourceAudit;
-import com.gobliip.chronos.server.entities.Moment;
-import com.gobliip.chronos.server.entities.Moment.MomentType;
-import com.gobliip.chronos.server.entities.MomentsRepository;
-import com.gobliip.chronos.server.entities.Tracking;
-import com.gobliip.chronos.server.entities.Tracking.TrackingStatus;
-import com.gobliip.chronos.server.entities.TrackingsRepository;
+import javax.persistence.EntityManager;
+import java.time.Instant;
+import java.util.List;
 
 @Service
 public class TrackingsService {
 
-//	private static final Logger logger = LoggerFactory
-//			.getLogger(TrackingsService.class);
+    @Autowired
+    private EntityManager entityManager;
 
-	@Autowired
-	private Validator validator;
-	
-	@Autowired
-	private MomentsRepository momentsRepo;
+    @Autowired
+    private MomentsService momentsService;
 
-	@Autowired
-	private TrackingsRepository trackingRepo;
+    @Secured("ROLE_USER")
+    @Transactional(readOnly = false)
+    public Tracking createTracking(final String ownerName,
+                                   final byte[] attachmentBytes,
+                                   final String memo) {
+        final Tracking tracking = new Tracking();
+        tracking.setStatus(TrackingStatus.RUNNING);
+        tracking.setStart(Instant.now());
+        tracking.setOwner(ownerName);
 
-	@Autowired
-	private AuditEventRepository auditEventRepo;
+        entityManager.persist(tracking);
 
-	@Secured("ROLE_USER")
-	@Transactional(readOnly = false)
-	public Tracking createTracking(String ownerName) {
-		Tracking tracking = new Tracking();
-		tracking.setStatus(TrackingStatus.RUNNING);
-		tracking.setStart(Instant.now());
-		tracking.setOwner(ownerName);
-		
-		Moment moment = new Moment(MomentType.START, tracking);
-		tracking.getMoments().add(moment);
+        final Moment moment = momentsService.createMoment(ownerName, tracking, MomentType.START, attachmentBytes, memo);
+        tracking.setLastMoment(moment);
 
-		return trackingRepo.save(tracking);
-	}
-	
-	@ResourceAudit
-	@Secured("ROLE_USER")
-	@Transactional(readOnly = false)
-	public Tracking pauseTracking(String userName, Long trackingId) throws UnpausableTrackingException{
-		Tracking tracking = findTracking(userName, trackingId);
-		
-		// Check it is an valid status
-		TrackingStatus status = tracking.getStatus();
-		if(!status.equals(TrackingStatus.RUNNING)){
-			throw new UnpausableTrackingException(trackingId, tracking.getStatus());
-		}
-		
-		Moment moment = new Moment(MomentType.PAUSE, tracking);
-		momentsRepo.save(moment);
-		
-		tracking.setStatus(TrackingStatus.PAUSED);
-		tracking.setEnd(Instant.now());
-		return trackingRepo.save(tracking);
+        return tracking;
+    }
 
-	}
-	
-	@ResourceAudit
-	@Secured("ROLE_USER")
-	@Transactional(readOnly = false)
-	public Tracking resumeTracking(String userName, Long trackingId) throws UnresumableTrackingException{
-		Tracking tracking = findTracking(userName, trackingId);
-		
-		// Check it is an valid status
-		TrackingStatus status = tracking.getStatus();
-		if(!status.equals(TrackingStatus.PAUSED)){
-			throw new UnresumableTrackingException(trackingId, tracking.getStatus());
-		}
-		
-		Moment moment = new Moment(MomentType.RESUME, tracking);
-		momentsRepo.save(moment);
-		
-		tracking.setStatus(TrackingStatus.RUNNING);
-		tracking.setEnd(Instant.now());
-		return trackingRepo.save(tracking);
-	}
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    @Transactional(readOnly = false)
+    public Tracking pauseTracking(final String userName,
+                                  final Long trackingId,
+                                  final byte[] attachmentBytes,
+                                  final String memo) throws UnpausableTrackingException {
+        final Tracking tracking = findTracking(userName, trackingId);
 
-	@ResourceAudit
-	@Secured("ROLE_USER")
-	@Transactional(readOnly = false)
-	public Tracking stopTracking(String userName, Long trackingId) throws UnstopableTrackingException{
-		Tracking tracking = findTracking(userName, trackingId);
-		
-		// Check it is an stopable status
-		TrackingStatus status = tracking.getStatus();
-		if(!status.equals(TrackingStatus.PAUSED) && !status.equals(TrackingStatus.RUNNING)){
-			throw new UnstopableTrackingException(trackingId, tracking.getStatus());
-		}
-		
-		// Stop tracking now
-		Moment stopMoment = new Moment(MomentType.STOP, tracking);
-		momentsRepo.save(stopMoment);
-		
-		tracking.setStatus(TrackingStatus.STOPPED);
-		tracking.setEnd(Instant.now());
-		return trackingRepo.save(tracking);
-	}
+        // Check it is an valid status
+        if (!TrackingStatus.RUNNING.equals(tracking.getStatus())) {
+            throw new UnpausableTrackingException(trackingId, tracking.getStatus());
+        }
 
-	private Tracking findTracking(String userName, Long trackingId)
-			throws ResourceNotFoundException, ResourceNotOwnedException {
-		Tracking tracking = trackingRepo.findOne(trackingId);
-		
-		if(tracking == null){
-			throw new ResourceNotFoundException(trackingId, Tracking.class);
-		}
+        final Moment moment = momentsService.createMoment(userName, tracking, MomentType.PAUSE, attachmentBytes, memo);
+        entityManager.persist(moment);
 
-		if (!tracking.getOwner().equals(userName)) {
-			throw new ResourceNotOwnedException("TRACKING", trackingId, userName);
-		}
-		return tracking;
-	}
+        tracking.setLastMoment(moment);
+        tracking.setStatus(TrackingStatus.PAUSED);
+        return tracking;
+    }
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    @Transactional(readOnly = false)
+    public Tracking resumeTracking(final String userName,
+                                   Long trackingId,
+                                   final byte[] attachmentBytes,
+                                   final String memo) throws UnresumableTrackingException {
+        final Tracking tracking = findTracking(userName, trackingId);
+
+        // Check it is an valid status
+        if (!TrackingStatus.PAUSED.equals(tracking.getStatus())) {
+            throw new UnresumableTrackingException(trackingId, tracking.getStatus());
+        }
+
+        final Moment moment = momentsService.createMoment(userName, tracking, MomentType.RESUME, attachmentBytes, memo);
+        entityManager.persist(moment);
+
+        tracking.setLastMoment(moment);
+        tracking.setStatus(TrackingStatus.RUNNING);
+
+        return tracking;
+    }
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    @Transactional(readOnly = false)
+    public Tracking stopTracking(final String userName,
+                                 final Long trackingId,
+                                 final byte[] attachmentBytes,
+                                 final String memo) throws UnstopableTrackingException {
+        final Tracking tracking = findTracking(userName, trackingId);
+
+        // Check it is an stopable status
+        final TrackingStatus status = tracking.getStatus();
+        if (!TrackingStatus.PAUSED.equals(status) && !TrackingStatus.RUNNING.equals(status)) {
+            throw new UnstopableTrackingException(trackingId, tracking.getStatus());
+        }
+
+        // Stop tracking now
+        final Moment moment = momentsService.createMoment(userName, tracking, MomentType.STOP, attachmentBytes, memo);
+        entityManager.persist(moment);
+
+        tracking.setLastMoment(moment);
+        tracking.setStatus(TrackingStatus.STOPPED);
+        tracking.setEnd(Instant.now());
+        return tracking;
+    }
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    public Tracking findTracking(final String userName, final Long trackingId)
+            throws ResourceNotFoundException, ResourceNotOwnedException {
+        final Tracking tracking = entityManager.find(Tracking.class, trackingId);
+
+        if (tracking == null) {
+            throw new ResourceNotFoundException(trackingId, Tracking.class);
+        }
+
+        if (!tracking.getOwner().equals(userName)) {
+            throw new ResourceNotOwnedException("Tracking", trackingId, userName);
+        }
+        return tracking;
+    }
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    public List<Moment> findMoments(final String userName, final Long trackingId) {
+        // We check user owns the tracking using the findTracking
+        final Tracking tracking = findTracking(userName, trackingId);
+        return tracking.getMoments();
+    }
 }

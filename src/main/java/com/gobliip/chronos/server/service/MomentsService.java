@@ -26,10 +26,16 @@ public class MomentsService {
     private static final String ATTACHMENT_URL_BEING_GENERATED_IMAGE_URL = "http://www.codemonkeyintraining.com/wp-content/uploads/2015/06/monkey-on-computer.jpg";
 
     public enum TrackingAction {
-        CREATE_MEMO("create", "moment", "memo");
+        CREATE_MEMO("create", "moment", "memo"),
+        START_TRACKING("create", "moment", "start"),
+        STOP_TRACKING("create", "moment", "stop"),
+        PAUSE_TRACKING("create", "moment", "pause"),
+        RESUME_TRACKING("create", "moment", "resume");
+
         private final String action;
         private final String[] params;
-        TrackingAction(String action, String... params){
+
+        TrackingAction(String action, String... params) {
             this.action = action;
             this.params = params;
         }
@@ -37,7 +43,7 @@ public class MomentsService {
         @Override
         public String toString() {
             StringBuilder builder = new StringBuilder(action);
-            for (String param : params){
+            for (String param : params) {
                 builder.append(' ');
                 builder.append(param);
             }
@@ -56,13 +62,22 @@ public class MomentsService {
     @Transactional(readOnly = false)
     public Moment createMoment(String ownerId, Long trackingId, Moment.MomentType type, byte[] attachmentBytes, String memo)
             throws InvalidTrackingStateException {
-        Assert.hasText(ownerId);
         Assert.notNull(trackingId);
         Assert.state(trackingId > 0);
-        Assert.notNull(type);
-        Assert.state(verifyMomentTypeCreationSupport(type));
 
         final Tracking tracking = trackingsService.findTracking(ownerId, trackingId);
+
+        return createMoment(ownerId, tracking, type, attachmentBytes, memo);
+    }
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    @Transactional(readOnly = false)
+    public Moment createMoment(String ownerId, Tracking tracking, Moment.MomentType type, byte[] attachmentBytes, String memo)
+            throws InvalidTrackingStateException {
+        Assert.hasText(ownerId);
+        Assert.notNull(type);
+        Assert.state(ownerId.equals(tracking.getOwner()));
 
         final Moment moment = new Moment();
         moment.setTracking(tracking);
@@ -70,41 +85,56 @@ public class MomentsService {
         moment.setMomentInstant(Instant.now());
         moment.setType(type);
 
-        final Attachment attachment = new Attachment();
-        attachment.setLocation(Attachment.AttachmentLocation.DATABASE);
-        attachment.setStatus(Attachment.AttachmentStatus.MANTAINANCE);
-        attachment.setContent(attachmentBytes);
-        attachment.setUrl(ATTACHMENT_URL_BEING_GENERATED_IMAGE_URL);
-        attachment.setMoment(moment);
-        moment.getAttachments().add(attachment);
-
-        if (!validateTrackingAction(tracking, TrackingAction.CREATE_MEMO)) {
-            LOGGER.error("Tracking currently not running, imposibble to create new moment: {}", moment);
-            throw new InvalidTrackingStateException(tracking, TrackingAction.CREATE_MEMO);
+        final Tracking.TrackingStatus trackingStatus = tracking.getStatus();
+        switch (type) {
+            case MEMO:
+                if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
+                    LOGGER.error("Tracking currently not running, impossible to create new memo: {}", moment);
+                    throw new InvalidTrackingStateException(tracking, TrackingAction.CREATE_MEMO);
+                }
+                break;
+            case START:
+                if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
+                    LOGGER.error("Tracking currently not running, impossible to create new start moment: {}", moment);
+                    throw new InvalidTrackingStateException(tracking, TrackingAction.START_TRACKING);
+                }
+                break;
+            case STOP:
+                if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus) || !Tracking.TrackingStatus.PAUSED.equals(trackingStatus)) {
+                    LOGGER.error("Tracking currently not running, impossible to create new stop moment: {}", moment);
+                    throw new InvalidTrackingStateException(tracking, TrackingAction.STOP_TRACKING);
+                }
+                break;
+            case PAUSE:
+                if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
+                    LOGGER.error("Tracking currently not running, impossible to create new pause moment: {}", moment);
+                    throw new InvalidTrackingStateException(tracking, TrackingAction.PAUSE_TRACKING);
+                }
+                break;
+            case RESUME:
+                if (!Tracking.TrackingStatus.PAUSED.equals(trackingStatus)) {
+                    LOGGER.error("Tracking currently not running, impossible to create new pause moment: {}", moment);
+                    throw new InvalidTrackingStateException(tracking, TrackingAction.RESUME_TRACKING);
+                }
+                break;
         }
 
         entityManager.persist(moment);
-        attachment.setUrl("/attachments/" + attachment.getId()+ "/raw");
+
+        if (attachmentBytes != null && attachmentBytes.length > 0) {
+            final Attachment attachment = new Attachment();
+            attachment.setLocation(Attachment.AttachmentLocation.DATABASE);
+            attachment.setStatus(Attachment.AttachmentStatus.MANTAINANCE);
+            attachment.setContent(attachmentBytes);
+            attachment.setUrl(ATTACHMENT_URL_BEING_GENERATED_IMAGE_URL);
+            attachment.setMoment(moment);
+            moment.getAttachments().add(attachment);
+            entityManager.persist(attachment);
+            attachment.setUrl("/attachments/" + attachment.getId() + "/raw");
+            attachment.setStatus(Attachment.AttachmentStatus.AVAILABLE);
+        }
 
         return moment;
-    }
-
-    public boolean validateTrackingAction(Tracking tracking, TrackingAction action){
-        switch (action){
-            case CREATE_MEMO:
-                return Tracking.TrackingStatus.RUNNING.equals(tracking.getStatus());
-        }
-        return false;
-    }
-
-    public boolean verifyMomentTypeCreationSupport(Moment.MomentType type) {
-        switch (type) {
-            // Only allow memo creation through this service
-            case MEMO:
-                return true;
-            default:
-                return false;
-        }
     }
 
 }

@@ -14,14 +14,14 @@ public class WorkPeriod extends BaseEntity {
     private Long id;
 
     /**
-     * Can be of type START, RESUME, WORK_HEARTBEAT
+     * Can be of type START, RESUME, HEARTBEAT
      */
     @OneToOne(optional = false)
     @JoinColumn(name = "start_moment_id")
     private Moment start;
 
     /**
-     * Can be of type STOP, PAUSE
+     * Can be of type STOP, PAUSE, HEARTBEAT
      */
     @OneToOne(optional = false)
     @JoinColumn(name = "end_moment_id")

@@ -12,7 +12,7 @@ import java.util.List;
 public class Moment extends BaseEntity {
 
     public static enum MomentType {
-        PAUSE, MEMO, RESUME, STOP, START
+        PAUSE, MEMO, RESUME, STOP, START, HEARTBEAT
     }
 
     private static final long serialVersionUID = 5527675255255574923L;

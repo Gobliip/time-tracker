@@ -30,7 +30,8 @@ public class MomentsService {
         START_TRACKING("create", "moment", "start"),
         STOP_TRACKING("create", "moment", "stop"),
         PAUSE_TRACKING("create", "moment", "pause"),
-        RESUME_TRACKING("create", "moment", "resume");
+        RESUME_TRACKING("create", "moment", "resume"),
+        HEARTBEAT("create", "moment", "heartbeat");
 
         private final String action;
         private final String[] params;
@@ -101,7 +102,7 @@ public class MomentsService {
                 break;
             case STOP:
                 if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus) || !Tracking.TrackingStatus.PAUSED.equals(trackingStatus)) {
-                    LOGGER.error("Tracking currently not running, impossible to create new stop moment: {}", moment);
+                    LOGGER.error("Tracking currently not running or paused, impossible to create new stop moment: {}", moment);
                     throw new InvalidTrackingStateException(tracking, TrackingAction.STOP_TRACKING);
                 }
                 break;
@@ -113,8 +114,14 @@ public class MomentsService {
                 break;
             case RESUME:
                 if (!Tracking.TrackingStatus.PAUSED.equals(trackingStatus)) {
-                    LOGGER.error("Tracking currently not running, impossible to create new pause moment: {}", moment);
+                    LOGGER.error("Tracking currently not paused, impossible to create new pause moment: {}", moment);
                     throw new InvalidTrackingStateException(tracking, TrackingAction.RESUME_TRACKING);
+                }
+                break;
+            case HEARTBEAT:
+                if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
+                    LOGGER.error("Tracking currently not running, impossible to create new heartbeat moment: {}", moment);
+                    throw new InvalidTrackingStateException(tracking, TrackingAction.HEARTBEAT);
                 }
                 break;
         }

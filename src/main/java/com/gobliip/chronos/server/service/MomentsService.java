@@ -101,7 +101,7 @@ public class MomentsService {
                 }
                 break;
             case STOP:
-                if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus) || !Tracking.TrackingStatus.PAUSED.equals(trackingStatus)) {
+                if (!(Tracking.TrackingStatus.RUNNING.equals(trackingStatus) || Tracking.TrackingStatus.PAUSED.equals(trackingStatus))) {
                     LOGGER.error("Tracking currently not running or paused, impossible to create new stop moment: {}", moment);
                     throw new InvalidTrackingStateException(tracking, TrackingAction.STOP_TRACKING);
                 }

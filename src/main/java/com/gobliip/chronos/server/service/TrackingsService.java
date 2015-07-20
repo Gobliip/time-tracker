@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 
 import javax.persistence.EntityManager;
 import java.time.Instant;
@@ -27,18 +28,17 @@ public class TrackingsService {
 
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Tracking createTracking(final String ownerName,
+    public Tracking createTracking(final String principal,
                                    final byte[] attachmentBytes,
                                    final String memo) {
         final Tracking tracking = new Tracking();
         tracking.setStatus(TrackingStatus.RUNNING);
         tracking.setStart(Instant.now());
-        tracking.setOwner(ownerName);
+        tracking.setOwner(principal);
 
         entityManager.persist(tracking);
 
-        final Moment moment = momentsService.createMoment(ownerName, tracking, MomentType.START, attachmentBytes, memo);
-        tracking.setLastMoment(moment);
+        addMoment(principal, tracking, MomentType.START, attachmentBytes, memo);
 
         return tracking;
     }
@@ -57,11 +57,9 @@ public class TrackingsService {
             throw new UnpausableTrackingException(trackingId, tracking.getStatus());
         }
 
-        final Moment moment = momentsService.createMoment(userName, tracking, MomentType.PAUSE, attachmentBytes, memo);
-        entityManager.persist(moment);
-
-        tracking.setLastMoment(moment);
+        addMoment(userName, tracking, MomentType.PAUSE, attachmentBytes, memo);
         tracking.setStatus(TrackingStatus.PAUSED);
+
         return tracking;
     }
 
@@ -79,10 +77,7 @@ public class TrackingsService {
             throw new UnresumableTrackingException(trackingId, tracking.getStatus());
         }
 
-        final Moment moment = momentsService.createMoment(userName, tracking, MomentType.RESUME, attachmentBytes, memo);
-        entityManager.persist(moment);
-
-        tracking.setLastMoment(moment);
+        addMoment(userName, tracking, MomentType.RESUME, attachmentBytes, memo);
         tracking.setStatus(TrackingStatus.RUNNING);
 
         return tracking;
@@ -103,14 +98,32 @@ public class TrackingsService {
             throw new UnstopableTrackingException(trackingId, tracking.getStatus());
         }
 
-        // Stop tracking now
-        final Moment moment = momentsService.createMoment(userName, tracking, MomentType.STOP, attachmentBytes, memo);
-        entityManager.persist(moment);
-
-        tracking.setLastMoment(moment);
+        addMoment(userName, tracking, MomentType.STOP, attachmentBytes, memo);
         tracking.setStatus(TrackingStatus.STOPPED);
         tracking.setEnd(Instant.now());
+
         return tracking;
+    }
+
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    public Tracking doHeartbeat(String principal, Long trackingId, byte[] attachmentBytes, String memo) {
+        return addMoment(principal, trackingId, MomentType.HEARTBEAT, attachmentBytes, memo);
+    }
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    public Tracking addMemo(String principal, Long trackingId, byte[] attachmentBytes, String memo) {
+        return addMoment(principal, trackingId, MomentType.MEMO, attachmentBytes, memo);
+    }
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    public List<Moment> findMoments(final String userName, final Long trackingId) {
+        // We check user owns the tracking using the findTracking
+        final Tracking tracking = findTracking(userName, trackingId);
+        return tracking.getMoments();
     }
 
     @ResourceAudit
@@ -129,11 +142,22 @@ public class TrackingsService {
         return tracking;
     }
 
-    @ResourceAudit
-    @Secured("ROLE_USER")
-    public List<Moment> findMoments(final String userName, final Long trackingId) {
-        // We check user owns the tracking using the findTracking
-        final Tracking tracking = findTracking(userName, trackingId);
-        return tracking.getMoments();
+    protected Tracking addMoment(String principal, Long trackingId, MomentType momentType, byte[] attachmentBytes, String memo) {
+        final Tracking tracking = findTracking(principal, trackingId);
+        addMoment(principal, tracking, momentType, attachmentBytes, memo);
+        return tracking;
     }
+
+    protected Moment addMoment(String principal, Tracking tracking, MomentType momentType, byte[] attachmentBytes, String memo) {
+        Assert.notNull(principal);
+        Assert.state(principal.equals(tracking.getOwner()));
+
+        final Moment moment = momentsService.createMoment(principal, tracking, momentType, attachmentBytes, memo);
+        entityManager.persist(moment);
+        tracking.getMoments().add(moment);
+        tracking.setLastMoment(moment);
+        return moment;
+    }
+
+
 }

@@ -26,5 +26,5 @@ public class AttachmentsController {
     ) {
         return attachmentsService.getRaw(principal.getName(), attachmentId);
     }
-    
+
 }

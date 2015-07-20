@@ -44,8 +44,9 @@ public class Attachment extends BaseEntity {
     @Column(name = "is_public")
     private boolean isPublic;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
+    @JoinColumn(name = "moment_id")
     private Moment moment;
 
     public Long getId() {

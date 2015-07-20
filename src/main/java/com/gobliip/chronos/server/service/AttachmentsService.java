@@ -6,6 +6,7 @@ import com.gobliip.chronos.server.audit.ResourceAudit;
 import com.gobliip.chronos.server.entities.Attachment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 
 import javax.persistence.EntityManager;
 
@@ -26,14 +27,20 @@ public class AttachmentsService {
 
     @ResourceAudit
     public Attachment findAttachment(String user, Long attachmentId) {
+        Assert.hasText(user);
+        Assert.notNull(attachmentId);
+        Assert.state(attachmentId > 0);
+
         final Attachment attachment = entityManager.find(Attachment.class, attachmentId);
 
         if(attachment == null){
             throw new ResourceNotFoundException(attachmentId, Attachment.class);
         }
 
-        if(!attachment.isPublic() && user.equals(attachment.getMoment().getTracking().getOwner())){
-            throw new ResourceNotOwnedException("Attachment", attachmentId, user);
+        if(!attachment.isPublic()){
+            if(!user.equals(attachment.getMoment().getTracking().getOwner())) {
+                throw new ResourceNotOwnedException("Attachment", attachmentId, user);
+            }
         }
 
         return attachment;

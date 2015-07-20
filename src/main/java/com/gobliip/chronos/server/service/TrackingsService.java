@@ -2,6 +2,7 @@ package com.gobliip.chronos.server.service;
 
 import com.gobliip.chronos.domain.exception.*;
 import com.gobliip.chronos.server.audit.ResourceAudit;
+import com.gobliip.chronos.server.entities.Attachment;
 import com.gobliip.chronos.server.entities.Moment;
 import com.gobliip.chronos.server.entities.Moment.MomentType;
 import com.gobliip.chronos.server.entities.Tracking;
@@ -21,18 +22,23 @@ public class TrackingsService {
     @Autowired
     private EntityManager entityManager;
 
+    @Autowired
+    private MomentsService momentsService;
+
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Tracking createTracking(String ownerName) {
+    public Tracking createTracking(final String ownerName,
+                                   final byte[] attachmentBytes,
+                                   final String memo) {
         final Tracking tracking = new Tracking();
         tracking.setStatus(TrackingStatus.RUNNING);
         tracking.setStart(Instant.now());
         tracking.setOwner(ownerName);
 
-        final Moment moment = new Moment(MomentType.START);
-        tracking.addMoment(moment);
-
         entityManager.persist(tracking);
+
+        final Moment moment = momentsService.createMoment(ownerName, tracking, MomentType.START, attachmentBytes, memo);
+        tracking.setLastMoment(moment);
 
         return tracking;
     }
@@ -40,7 +46,10 @@ public class TrackingsService {
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Tracking pauseTracking(String userName, Long trackingId) throws UnpausableTrackingException {
+    public Tracking pauseTracking(final String userName,
+                                  final Long trackingId,
+                                  final byte[] attachmentBytes,
+                                  final String memo) throws UnpausableTrackingException {
         final Tracking tracking = findTracking(userName, trackingId);
 
         // Check it is an valid status
@@ -48,7 +57,7 @@ public class TrackingsService {
             throw new UnpausableTrackingException(trackingId, tracking.getStatus());
         }
 
-        final Moment moment = new Moment(MomentType.PAUSE, tracking);
+        final Moment moment = momentsService.createMoment(userName, tracking, MomentType.PAUSE, attachmentBytes, memo);
         entityManager.persist(moment);
 
         tracking.setLastMoment(moment);
@@ -59,7 +68,10 @@ public class TrackingsService {
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Tracking resumeTracking(String userName, Long trackingId) throws UnresumableTrackingException {
+    public Tracking resumeTracking(final String userName,
+                                   Long trackingId,
+                                   final byte[] attachmentBytes,
+                                   final String memo) throws UnresumableTrackingException {
         final Tracking tracking = findTracking(userName, trackingId);
 
         // Check it is an valid status
@@ -67,7 +79,7 @@ public class TrackingsService {
             throw new UnresumableTrackingException(trackingId, tracking.getStatus());
         }
 
-        final Moment moment = new Moment(MomentType.RESUME, tracking);
+        final Moment moment = momentsService.createMoment(userName, tracking, MomentType.RESUME, attachmentBytes, memo);
         entityManager.persist(moment);
 
         tracking.setLastMoment(moment);
@@ -79,8 +91,11 @@ public class TrackingsService {
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Tracking stopTracking(String userName, Long trackingId) throws UnstopableTrackingException {
-        Tracking tracking = findTracking(userName, trackingId);
+    public Tracking stopTracking(final String userName,
+                                 final Long trackingId,
+                                 final byte[] attachmentBytes,
+                                 final String memo) throws UnstopableTrackingException {
+        final Tracking tracking = findTracking(userName, trackingId);
 
         // Check it is an stopable status
         final TrackingStatus status = tracking.getStatus();
@@ -89,10 +104,10 @@ public class TrackingsService {
         }
 
         // Stop tracking now
-        final Moment stopMoment = new Moment(MomentType.STOP, tracking);
-        entityManager.persist(stopMoment);
+        final Moment moment = momentsService.createMoment(userName, tracking, MomentType.STOP, attachmentBytes, memo);
+        entityManager.persist(moment);
 
-        tracking.setLastMoment(stopMoment);
+        tracking.setLastMoment(moment);
         tracking.setStatus(TrackingStatus.STOPPED);
         tracking.setEnd(Instant.now());
         return tracking;
@@ -100,7 +115,7 @@ public class TrackingsService {
 
     @ResourceAudit
     @Secured("ROLE_USER")
-    public Tracking findTracking(String userName, Long trackingId)
+    public Tracking findTracking(final String userName, final Long trackingId)
             throws ResourceNotFoundException, ResourceNotOwnedException {
         final Tracking tracking = entityManager.find(Tracking.class, trackingId);
 
@@ -116,7 +131,7 @@ public class TrackingsService {
 
     @ResourceAudit
     @Secured("ROLE_USER")
-    public List<Moment> findMoments(String userName, Long trackingId) {
+    public List<Moment> findMoments(final String userName, final Long trackingId) {
         // We check user owns the tracking using the findTracking
         final Tracking tracking = findTracking(userName, trackingId);
         return tracking.getMoments();

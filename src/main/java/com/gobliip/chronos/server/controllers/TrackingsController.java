@@ -73,4 +73,26 @@ public class TrackingsController {
 		return service.resumeTracking(user.getName(), trackingId, attachmentBytes, memo);
 	}
 
+	@Secured("ROLE_USER")
+	@RequestMapping(value = "/{trackingId}/memo", method = RequestMethod.POST, produces = "application/json")
+	public Tracking addMemo(@AuthenticationPrincipal Principal user,
+							@PathVariable Long trackingId,
+							@RequestParam(required = false) final MultipartFile attachment,
+							@RequestParam(required = false) final String memo)
+			throws UnresumableTrackingException, IOException {
+		final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
+		return service.addMemo(user.getName(), trackingId, attachmentBytes, memo);
+	}
+
+	@Secured("ROLE_USER")
+	@RequestMapping(value = "/{trackingId}/heartbeat", method = RequestMethod.POST, produces = "application/json")
+	public Tracking doHeartbeat(@AuthenticationPrincipal Principal user,
+								   @PathVariable Long trackingId,
+								   @RequestParam(required = false) final MultipartFile attachment,
+								   @RequestParam(required = false) final String memo)
+			throws UnresumableTrackingException, IOException {
+		final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
+		return service.doHeartbeat(user.getName(), trackingId, attachmentBytes, memo);
+	}
+
 }

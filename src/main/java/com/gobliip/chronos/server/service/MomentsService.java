@@ -4,7 +4,7 @@ import com.gobliip.chronos.server.audit.ResourceAudit;
 import com.gobliip.chronos.server.entities.Attachment;
 import com.gobliip.chronos.server.entities.Moment;
 import com.gobliip.chronos.server.entities.Tracking;
-import com.gobliip.chronos.server.service.exception.InvalidTrackingStateException;
+import com.gobliip.chronos.server.service.exception.IllegalTrackingStateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +63,7 @@ public class MomentsService {
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
     public Moment createMoment(String ownerId, Long trackingId, Moment.MomentType type, Optional<byte[]> attachmentBytes, Optional<String> memo)
-            throws InvalidTrackingStateException {
+            throws IllegalTrackingStateException {
         Assert.notNull(trackingId);
         Assert.state(trackingId > 0);
 
@@ -76,7 +76,7 @@ public class MomentsService {
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
     public Moment createMoment(String ownerId, Tracking tracking, Moment.MomentType type, Optional<byte[]> attachmentBytes, Optional<String> memo)
-            throws InvalidTrackingStateException {
+            throws IllegalTrackingStateException {
         Assert.hasText(ownerId);
         Assert.notNull(type);
         Assert.state(ownerId.equals(tracking.getOwner()));
@@ -89,40 +89,34 @@ public class MomentsService {
 
         final Tracking.TrackingStatus trackingStatus = tracking.getStatus();
         switch (type) {
-            case MEMO:
-                if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
-                    LOGGER.error("Tracking currently not running, impossible to create new memo: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.CREATE_MEMO);
-                }
-                break;
             case START:
                 if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
                     LOGGER.error("Tracking currently not running, impossible to create new start moment: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.START_TRACKING);
+                    throw new IllegalTrackingStateException(tracking, TrackingAction.START_TRACKING);
                 }
                 break;
             case STOP:
                 if (!(Tracking.TrackingStatus.RUNNING.equals(trackingStatus) || Tracking.TrackingStatus.PAUSED.equals(trackingStatus))) {
                     LOGGER.error("Tracking currently not running or paused, impossible to create new stop moment: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.STOP_TRACKING);
+                    throw new IllegalTrackingStateException(tracking, TrackingAction.STOP_TRACKING);
                 }
                 break;
             case PAUSE:
                 if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
                     LOGGER.error("Tracking currently not running, impossible to create new pause moment: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.PAUSE_TRACKING);
+                    throw new IllegalTrackingStateException(tracking, TrackingAction.PAUSE_TRACKING);
                 }
                 break;
             case RESUME:
                 if (!Tracking.TrackingStatus.PAUSED.equals(trackingStatus)) {
                     LOGGER.error("Tracking currently not paused, impossible to create new pause moment: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.RESUME_TRACKING);
+                    throw new IllegalTrackingStateException(tracking, TrackingAction.RESUME_TRACKING);
                 }
                 break;
             case HEARTBEAT:
                 if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
                     LOGGER.error("Tracking currently not running, impossible to create new heartbeat moment: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.HEARTBEAT);
+                    throw new IllegalTrackingStateException(tracking, TrackingAction.HEARTBEAT);
                 }
                 break;
         }

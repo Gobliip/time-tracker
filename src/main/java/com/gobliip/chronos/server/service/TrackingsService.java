@@ -46,18 +46,30 @@ public class TrackingsService {
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Tracking pauseTracking(final String userName,
+    public Tracking pauseTracking(final String principal,
                                   final Long trackingId,
                                   final Optional<byte[]> attachmentBytes,
                                   final Optional<String> memo) throws UnpausableTrackingException {
-        final Tracking tracking = findTracking(userName, trackingId);
+        final Tracking tracking = findTracking(principal, trackingId);
+        return pauseTracking(principal, tracking, attachmentBytes, memo);
+    }
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    @Transactional(readOnly = false)
+    public Tracking pauseTracking(final String principal,
+                                  final Tracking tracking,
+                                  final Optional<byte[]> attachmentBytes,
+                                  final Optional<String> memo) throws UnpausableTrackingException {
+        Assert.hasText(principal);
+        Assert.state(principal.equals(tracking.getOwner()));
 
         // Check it is an valid status
         if (!TrackingStatus.RUNNING.equals(tracking.getStatus())) {
-            throw new UnpausableTrackingException(trackingId, tracking.getStatus());
+            throw new UnpausableTrackingException(tracking.getId(), tracking.getStatus());
         }
 
-        addMoment(userName, tracking, MomentType.PAUSE, attachmentBytes, memo);
+        addMoment(principal, tracking, MomentType.PAUSE, attachmentBytes, memo);
         tracking.setStatus(TrackingStatus.PAUSED);
 
         return tracking;
@@ -66,39 +78,67 @@ public class TrackingsService {
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Tracking resumeTracking(final String userName,
+    public Tracking resumeTracking(final String principal,
                                    final Long trackingId,
                                    final Optional<byte[]> attachmentBytes,
                                    final Optional<String> memo) throws UnresumableTrackingException {
-        final Tracking tracking = findTracking(userName, trackingId);
-
-        // Check it is an valid status
-        if (!TrackingStatus.PAUSED.equals(tracking.getStatus())) {
-            throw new UnresumableTrackingException(trackingId, tracking.getStatus());
-        }
-
-        addMoment(userName, tracking, MomentType.RESUME, attachmentBytes, memo);
-        tracking.setStatus(TrackingStatus.RUNNING);
-
-        return tracking;
+        final Tracking tracking = findTracking(principal, trackingId);
+        return resumeTracking(principal, tracking, attachmentBytes, memo);
     }
 
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Tracking stopTracking(final String userName,
+    public Tracking resumeTracking(final String principal,
+                                   final Tracking tracking,
+                                   final Optional<byte[]> attachmentBytes,
+                                   final Optional<String> memo) throws UnresumableTrackingException {
+        assertOwnership(principal, tracking);
+
+        // Check it is an valid status
+        if (!TrackingStatus.PAUSED.equals(tracking.getStatus())) {
+            throw new UnresumableTrackingException(tracking.getId(), tracking.getStatus());
+        }
+
+        addMoment(principal, tracking, MomentType.RESUME, attachmentBytes, memo);
+        tracking.setStatus(TrackingStatus.RUNNING);
+
+        return tracking;
+    }
+
+    protected static void assertOwnership(final String principal, final Tracking tracking){
+        Assert.hasText(principal);
+        Assert.state(principal.equals(tracking.getOwner()));
+    }
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    @Transactional(readOnly = false)
+    public Tracking stopTracking(final String principal,
                                  final Long trackingId,
                                  final Optional<byte[]> attachmentBytes,
                                  final Optional<String> memo) throws UnstopableTrackingException {
-        final Tracking tracking = findTracking(userName, trackingId);
+        final Tracking tracking = findTracking(principal, trackingId);
+        return stopTracking(principal, tracking, attachmentBytes, memo);
+    }
+
+    @ResourceAudit
+    @Secured("ROLE_USER")
+    @Transactional(readOnly = false)
+    public Tracking stopTracking(final String principal,
+                                 final Tracking tracking,
+                                 final Optional<byte[]> attachmentBytes,
+                                 final Optional<String> memo) throws UnstopableTrackingException {
+
+        assertOwnership(principal, tracking);
 
         // Check it is an stopable status
         final TrackingStatus status = tracking.getStatus();
         if (!TrackingStatus.PAUSED.equals(status) && !TrackingStatus.RUNNING.equals(status)) {
-            throw new UnstopableTrackingException(trackingId, tracking.getStatus());
+            throw new UnstopableTrackingException(tracking.getId(), tracking.getStatus());
         }
 
-        addMoment(userName, tracking, MomentType.STOP, attachmentBytes, memo);
+        addMoment(principal, tracking, MomentType.STOP, attachmentBytes, memo);
         tracking.setStatus(TrackingStatus.STOPPED);
         tracking.setEnd(Instant.now());
 
@@ -112,10 +152,11 @@ public class TrackingsService {
         return addMoment(principal, trackingId, MomentType.HEARTBEAT, attachmentBytes, memo);
     }
 
+    @Deprecated
     @ResourceAudit
     @Secured("ROLE_USER")
     public Tracking addMemo(String principal, Long trackingId, Optional<byte[]> attachmentBytes, Optional<String> memo) {
-        return addMoment(principal, trackingId, MomentType.MEMO, attachmentBytes, memo);
+        return addMoment(principal, trackingId, MomentType.HEARTBEAT, attachmentBytes, memo);
     }
 
     @ResourceAudit

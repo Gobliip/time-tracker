@@ -20,20 +20,20 @@ import javax.validation.Validator;
 @EnableGlobalMethodSecurity(prePostEnabled = true, securedEnabled = true)
 @EnableAspectJAutoProxy
 public class TimeTrackerApplication {
-	
-	@Bean
-	public Validator localValidatorFactoryBean() {
-	   return new LocalValidatorFactoryBean();
-	}
 
-	@Bean
-	public MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter(
-			ObjectMapper objectMapper) {
-		objectMapper.registerModule(new Hibernate4Module());
-		return new MappingJackson2HttpMessageConverter(objectMapper);
-	}
+    @Bean
+    public Validator localValidatorFactoryBean() {
+        return new LocalValidatorFactoryBean();
+    }
 
-	public static void main(String[] args) {
-		SpringApplication.run(TimeTrackerApplication.class, args);
-	}
+    @Bean
+    public MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter(
+            ObjectMapper objectMapper) {
+        objectMapper.registerModule(new Hibernate4Module());
+        return new MappingJackson2HttpMessageConverter(objectMapper);
+    }
+
+    public static void main(String[] args) {
+        SpringApplication.run(TimeTrackerApplication.class, args);
+    }
 }

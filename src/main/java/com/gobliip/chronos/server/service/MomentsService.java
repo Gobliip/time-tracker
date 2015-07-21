@@ -4,7 +4,7 @@ import com.gobliip.chronos.server.audit.ResourceAudit;
 import com.gobliip.chronos.server.entities.Attachment;
 import com.gobliip.chronos.server.entities.Moment;
 import com.gobliip.chronos.server.entities.Tracking;
-import com.gobliip.chronos.server.service.exception.InvalidTrackingStateException;
+import com.gobliip.chronos.server.service.exception.IllegalTrackingStateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +15,7 @@ import org.springframework.util.Assert;
 
 import javax.persistence.EntityManager;
 import java.time.Instant;
+import java.util.Optional;
 
 /**
  * Created by lsamayoa on 19/07/15.
@@ -61,8 +62,8 @@ public class MomentsService {
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Moment createMoment(String ownerId, Long trackingId, Moment.MomentType type, byte[] attachmentBytes, String memo)
-            throws InvalidTrackingStateException {
+    public Moment createMoment(String ownerId, Long trackingId, Moment.MomentType type, Optional<byte[]> attachmentBytes, Optional<String> memo)
+            throws IllegalTrackingStateException {
         Assert.notNull(trackingId);
         Assert.state(trackingId > 0);
 
@@ -74,65 +75,59 @@ public class MomentsService {
     @ResourceAudit
     @Secured("ROLE_USER")
     @Transactional(readOnly = false)
-    public Moment createMoment(String ownerId, Tracking tracking, Moment.MomentType type, byte[] attachmentBytes, String memo)
-            throws InvalidTrackingStateException {
+    public Moment createMoment(String ownerId, Tracking tracking, Moment.MomentType type, Optional<byte[]> attachmentBytes, Optional<String> memo)
+            throws IllegalTrackingStateException {
         Assert.hasText(ownerId);
         Assert.notNull(type);
         Assert.state(ownerId.equals(tracking.getOwner()));
 
         final Moment moment = new Moment();
         moment.setTracking(tracking);
-        moment.setMemo(memo);
+        if(memo.isPresent()) moment.setMemo(memo.get());
         moment.setMomentInstant(Instant.now());
         moment.setType(type);
 
         final Tracking.TrackingStatus trackingStatus = tracking.getStatus();
         switch (type) {
-            case MEMO:
-                if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
-                    LOGGER.error("Tracking currently not running, impossible to create new memo: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.CREATE_MEMO);
-                }
-                break;
             case START:
                 if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
                     LOGGER.error("Tracking currently not running, impossible to create new start moment: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.START_TRACKING);
+                    throw new IllegalTrackingStateException(tracking, TrackingAction.START_TRACKING);
                 }
                 break;
             case STOP:
                 if (!(Tracking.TrackingStatus.RUNNING.equals(trackingStatus) || Tracking.TrackingStatus.PAUSED.equals(trackingStatus))) {
                     LOGGER.error("Tracking currently not running or paused, impossible to create new stop moment: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.STOP_TRACKING);
+                    throw new IllegalTrackingStateException(tracking, TrackingAction.STOP_TRACKING);
                 }
                 break;
             case PAUSE:
                 if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
                     LOGGER.error("Tracking currently not running, impossible to create new pause moment: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.PAUSE_TRACKING);
+                    throw new IllegalTrackingStateException(tracking, TrackingAction.PAUSE_TRACKING);
                 }
                 break;
             case RESUME:
                 if (!Tracking.TrackingStatus.PAUSED.equals(trackingStatus)) {
                     LOGGER.error("Tracking currently not paused, impossible to create new pause moment: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.RESUME_TRACKING);
+                    throw new IllegalTrackingStateException(tracking, TrackingAction.RESUME_TRACKING);
                 }
                 break;
             case HEARTBEAT:
                 if (!Tracking.TrackingStatus.RUNNING.equals(trackingStatus)) {
                     LOGGER.error("Tracking currently not running, impossible to create new heartbeat moment: {}", moment);
-                    throw new InvalidTrackingStateException(tracking, TrackingAction.HEARTBEAT);
+                    throw new IllegalTrackingStateException(tracking, TrackingAction.HEARTBEAT);
                 }
                 break;
         }
 
         entityManager.persist(moment);
 
-        if (attachmentBytes != null && attachmentBytes.length > 0) {
+        if (attachmentBytes.isPresent()) {
             final Attachment attachment = new Attachment();
             attachment.setLocation(Attachment.AttachmentLocation.DATABASE);
             attachment.setStatus(Attachment.AttachmentStatus.MANTAINANCE);
-            attachment.setContent(attachmentBytes);
+            attachment.setContent(attachmentBytes.get());
             attachment.setUrl(ATTACHMENT_URL_BEING_GENERATED_IMAGE_URL);
             attachment.setMoment(moment);
             moment.getAttachments().add(attachment);

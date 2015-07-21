@@ -1,5 +1,7 @@
 package com.gobliip.chronos.server.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.util.List;
 
@@ -32,6 +34,16 @@ public class WorkPeriod extends BaseEntity {
 
     @Column(name = "keyboard_actions_count")
     private int keyboardActionsCount;
+
+    @ManyToOne
+    @JoinColumn(name = "work_session_id")
+    @JsonIgnore
+    private WorkSession workSession;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    @JsonIgnore
+    private WorkPeriod parent;
 
     public Long getId() {
         return id;
@@ -71,5 +83,21 @@ public class WorkPeriod extends BaseEntity {
 
     public void setKeyboardActionsCount(int keyboardActionsCount) {
         this.keyboardActionsCount = keyboardActionsCount;
+    }
+
+    public WorkSession getWorkSession() {
+        return workSession;
+    }
+
+    public void setWorkSession(WorkSession workSession) {
+        this.workSession = workSession;
+    }
+
+    public WorkPeriod getParent() {
+        return parent;
+    }
+
+    public void setParent(WorkPeriod parent) {
+        this.parent = parent;
     }
 }

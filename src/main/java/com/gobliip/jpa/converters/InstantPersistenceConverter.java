@@ -8,20 +8,20 @@ import javax.persistence.Converter;
 
 @Converter(autoApply = true)
 public class InstantPersistenceConverter implements
-		AttributeConverter<Instant, Timestamp> {
+        AttributeConverter<Instant, Timestamp> {
 
-	@Override
-	public Timestamp convertToDatabaseColumn(Instant attribute) {
-		if (attribute == null)
-			return null;
-		return Timestamp.from(attribute);
-	}
+    @Override
+    public Timestamp convertToDatabaseColumn(Instant attribute) {
+        if (attribute == null)
+            return null;
+        return Timestamp.from(attribute);
+    }
 
-	@Override
-	public Instant convertToEntityAttribute(Timestamp dbData) {
-		if (dbData == null)
-			return null;
-		return dbData.toInstant();
-	}
+    @Override
+    public Instant convertToEntityAttribute(Timestamp dbData) {
+        if (dbData == null)
+            return null;
+        return dbData.toInstant();
+    }
 
 }

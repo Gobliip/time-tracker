@@ -10,6 +10,9 @@
 - Added support for attachments and memos for CREATE, PAUSE, RESUME, STOP tracking actions
 - Added support for database stored `Attachement`
 - Added endpoint `/attachments/{attachmentId}/raw` to download raw attchment data
+- Added `/timetracker` API to track work statistics like mouse and keyboard actions
+- `TimeTrackerService` allows an open `WorkSession` per user the `WorkSession` uses a `Tracking` to mantain time tracking state and `TimeTrackerService` delegates almost all tracking state management to `TrackingsService`
+- `WorkPeriod` was added to measure work activity in between 2 `Moment` objects
 
 0.0.1
 -----

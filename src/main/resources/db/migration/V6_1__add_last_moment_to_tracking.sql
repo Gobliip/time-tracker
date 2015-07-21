@@ -1,0 +1,1 @@
+ALTER TABLE trackings ADD COLUMN last_moment_id INT REFERENCES moments(id);

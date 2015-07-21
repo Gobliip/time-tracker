@@ -1,20 +1,20 @@
 package com.gobliip.chronos.server.entities;
 
+import com.fasterxml.jackson.annotation.*;
 import com.gobliip.jpa.converters.InstantPersistenceConverter;
 
 import javax.persistence.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity(name = "moments")
 public class Moment extends BaseEntity {
 
     public static enum MomentType {
-        PAUSE, MEMO, RESUME, STOP, START
+        PAUSE, RESUME, STOP, START, HEARTBEAT
     }
 
-    /**
-     *
-     */
     private static final long serialVersionUID = 5527675255255574923L;
 
     public Moment(MomentType type, Tracking tracking) {
@@ -37,6 +37,7 @@ public class Moment extends BaseEntity {
 
     @Convert(converter = InstantPersistenceConverter.class)
     @Column(name = "moment_instant", nullable = false)
+    @JsonProperty("instant")
     private Instant momentInstant;
 
     @Column(name = "memo", length = 1024)
@@ -46,14 +47,16 @@ public class Moment extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private MomentType type;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tracking_id", nullable = false)
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
+    @JsonProperty("trackingId")
     private Tracking tracking;
 
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "attachment")
-    private byte[] attachment;
+    @OneToMany(mappedBy = "moment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"location", "moment"})
+    private List<Attachment> attachments = new ArrayList<Attachment>();
 
     public Long getId() {
         return id;
@@ -95,11 +98,38 @@ public class Moment extends BaseEntity {
         this.tracking = tracking;
     }
 
-    public byte[] getAttachment() {
-        return attachment;
+    public List<Attachment> getAttachments() {
+        return attachments;
     }
 
-    public void setAttachment(byte[] attachment) {
-        this.attachment = attachment;
+    public void setAttachments(List<Attachment> attachments) {
+        this.attachments = attachments;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Moment moment = (Moment) o;
+
+        if (!id.equals(moment.id)) return false;
+        if (!momentInstant.equals(moment.momentInstant)) return false;
+        if (memo != null ? !memo.equals(moment.memo) : moment.memo != null) return false;
+        if (type != moment.type) return false;
+        if (!tracking.equals(moment.tracking)) return false;
+        return !(attachments != null ? !attachments.equals(moment.attachments) : moment.attachments != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id.hashCode();
+        result = 31 * result + momentInstant.hashCode();
+        result = 31 * result + (memo != null ? memo.hashCode() : 0);
+        result = 31 * result + type.hashCode();
+        result = 31 * result + tracking.hashCode();
+        result = 31 * result + (attachments != null ? attachments.hashCode() : 0);
+        return result;
     }
 }

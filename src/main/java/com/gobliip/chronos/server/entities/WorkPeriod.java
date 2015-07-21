@@ -38,7 +38,7 @@ public class WorkPeriod extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "work_session_id")
     @JsonIgnore
-    private WorkSession session;
+    private WorkSession workSession;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
@@ -85,12 +85,12 @@ public class WorkPeriod extends BaseEntity {
         this.keyboardActionsCount = keyboardActionsCount;
     }
 
-    public WorkSession getSession() {
-        return session;
+    public WorkSession getWorkSession() {
+        return workSession;
     }
 
-    public void setSession(WorkSession session) {
-        this.session = session;
+    public void setWorkSession(WorkSession workSession) {
+        this.workSession = workSession;
     }
 
     public WorkPeriod getParent() {

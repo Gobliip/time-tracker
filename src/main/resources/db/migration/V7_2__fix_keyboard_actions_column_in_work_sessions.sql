@@ -1,0 +1,5 @@
+ALTER TABLE work_sessions ADD COLUMN keyboard_actions_count INT UNSIGNED;
+
+UPDATE work_sessions SET keyboard_actions_count=keyboard_mouse_actions_count;
+
+ALTER TABLE work_sessions DROP COLUMN keyboard_mouse_actions_count

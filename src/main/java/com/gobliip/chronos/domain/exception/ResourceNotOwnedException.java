@@ -10,6 +10,13 @@ public class ResourceNotOwnedException extends RuntimeException {
 	private Serializable resourceId;
 	private String principal;
 
+	public ResourceNotOwnedException(Class<?> resourceType, Serializable resourceId,
+									 String principal) {
+		this.resourceType = resourceType.getName();
+		this.resourceId = resourceId;
+		this.principal = principal;
+	}
+
 	public ResourceNotOwnedException(String resourceType, Serializable resourceId,
 			String principal) {
 		this.resourceType = resourceType;

@@ -1,5 +1,7 @@
 package com.gobliip.chronos.server.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,6 +42,7 @@ public class WorkSession extends BaseEntity {
 
     @OneToOne(cascade = {CascadeType.REFRESH, CascadeType.MERGE, CascadeType.PERSIST, CascadeType.DETACH})
     @JoinColumn(name = "last_logged_period_id")
+    @JsonIgnore
     private WorkPeriod lastLoggedPeriod;
 
     public Long getId() {

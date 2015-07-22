@@ -1,15 +1,13 @@
 package com.gobliip.chronos.server.controllers;
 
 import com.gobliip.chronos.domain.exception.UnpausableTrackingException;
+import com.gobliip.chronos.domain.exception.UnresumableTrackingException;
 import com.gobliip.chronos.domain.exception.UnstopableTrackingException;
 import com.gobliip.chronos.server.entities.WorkSession;
 import com.gobliip.chronos.server.service.WorkTrackerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -22,85 +20,61 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/worktracker")
 public class WorkTrackerController {
+    
+    public enum WorkTrackerAction {
+        START,
+        STOP,
+        PAUSE,
+        RESUME,
+        LOG
+    }
 
     @Autowired
     private WorkTrackerService workTrackerService;
 
-    @RequestMapping(value = "/start", method = RequestMethod.POST)
-    public WorkSession startWorkSession(
+    @RequestMapping(value = "/{action:start|log|pause|resume|stop}", method = RequestMethod.POST)
+    public WorkSession sendAction(
             @AuthenticationPrincipal final Principal principal,
+            @PathVariable final String action,
+            @RequestParam(required = false) final int mouseActions,
+            @RequestParam(required = false) final int keyboardActions,
             @RequestParam(required = false) final MultipartFile attachment,
             @RequestParam(required = false) final String memo
-    ) throws IOException {
+    ) throws IOException, UnresumableTrackingException, UnpausableTrackingException, UnstopableTrackingException {
         final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
-        return workTrackerService
-                .startWorkSession(principal.getName(),
-                        Optional.ofNullable(attachmentBytes),
-                        Optional.ofNullable(memo));
+        switch (WorkTrackerAction.valueOf(action.toUpperCase())) {
+            case START:
+                return workTrackerService
+                        .startWorkSession(principal.getName(),
+                                Optional.ofNullable(attachmentBytes),
+                                Optional.ofNullable(memo));
+            case LOG:
+                return workTrackerService
+                        .logWorkToWorkSession(principal.getName(),
+                                mouseActions,
+                                keyboardActions,
+                                Optional.ofNullable(attachmentBytes),
+                                Optional.ofNullable(memo));
+            case RESUME:
+                return workTrackerService
+                        .resumeWorkSession(principal.getName(),
+                                Optional.ofNullable(attachmentBytes),
+                                Optional.ofNullable(memo));
+            case PAUSE:
+                return workTrackerService
+                        .pauseWorkSession(principal.getName(),
+                                mouseActions,
+                                keyboardActions,
+                                Optional.ofNullable(attachmentBytes),
+                                Optional.ofNullable(memo));
+            case STOP:
+                return workTrackerService
+                        .stopWorkSession(principal.getName(),
+                                mouseActions,
+                                keyboardActions,
+                                Optional.ofNullable(attachmentBytes),
+                                Optional.ofNullable(memo));
+        }
+        throw new IllegalArgumentException("Work session action is not recognized");
     }
-
-    @RequestMapping(value = "/log", method = RequestMethod.POST)
-    public WorkSession logWork(
-            @AuthenticationPrincipal final Principal principal,
-            @RequestParam final int mouseActions,
-            @RequestParam final int keyboardActions,
-            @RequestParam(required = false) final MultipartFile attachment,
-            @RequestParam(required = false) final String memo
-    ) throws IOException {
-        final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
-        return workTrackerService
-                .logWorkToWorkSession(principal.getName(),
-                        mouseActions,
-                        keyboardActions,
-                        Optional.ofNullable(attachmentBytes),
-                        Optional.ofNullable(memo));
-    }
-
-    @RequestMapping(value = "/resume", method = RequestMethod.POST)
-    public WorkSession resumeWorkSession(
-            @AuthenticationPrincipal final Principal principal,
-            @RequestParam(required = false) final MultipartFile attachment,
-            @RequestParam(required = false) final String memo
-    ) throws IOException {
-        final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
-        return workTrackerService
-                .startWorkSession(principal.getName(),
-                        Optional.ofNullable(attachmentBytes),
-                        Optional.ofNullable(memo));
-    }
-
-    @RequestMapping(value = "/pause", method = RequestMethod.POST)
-    public WorkSession pauseWorkSession(
-            @AuthenticationPrincipal final Principal principal,
-            @RequestParam(required = false, defaultValue = "0") final int mouseActions,
-            @RequestParam(required = false, defaultValue = "0") final int keyboardActions,
-            @RequestParam(required = false) final MultipartFile attachment,
-            @RequestParam(required = false) final String memo
-    ) throws IOException, UnpausableTrackingException {
-        final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
-        return workTrackerService
-                .pauseWorkSession(principal.getName(),
-                        mouseActions,
-                        keyboardActions,
-                        Optional.ofNullable(attachmentBytes),
-                        Optional.ofNullable(memo));
-    }
-
-    @RequestMapping(value = "/stop", method = RequestMethod.POST)
-    public WorkSession stopWorkSession(
-            @AuthenticationPrincipal final Principal principal,
-            @RequestParam(required = false, defaultValue = "0") final int mouseActions,
-            @RequestParam(required = false, defaultValue = "0") final int keyboardActions,
-            @RequestParam(required = false) final MultipartFile attachment,
-            @RequestParam(required = false) final String memo
-    ) throws IOException, UnpausableTrackingException, UnstopableTrackingException {
-        final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
-        return workTrackerService
-                .stopWorkSession(principal.getName(),
-                        mouseActions,
-                        keyboardActions,
-                        Optional.ofNullable(attachmentBytes),
-                        Optional.ofNullable(memo));
-    }
-
 }

@@ -21,6 +21,13 @@ import java.util.Optional;
 @RequestMapping("/trackings")
 public class TrackingsController {
 
+    public enum TrackingAction {
+        STOP,
+        RESUME,
+        PAUSE,
+        HEARTBEAT
+    }
+
     @Autowired
     private TrackingsService service;
 
@@ -35,64 +42,32 @@ public class TrackingsController {
 
     @Secured("ROLE_USER")
     @RequestMapping(value = "/{trackingId}/moments", method = RequestMethod.GET, produces = "application/json")
-    public List<Moment> getTrackingMoments(@AuthenticationPrincipal Principal user,
-                                           @PathVariable Long trackingId) throws IOException {
+    public List<Moment> getTrackingMoments(@AuthenticationPrincipal final Principal user,
+                                           @PathVariable final Long trackingId) throws IOException {
         return service.findMoments(user.getName(), trackingId);
     }
 
     @Secured("ROLE_USER")
-    @RequestMapping(value = "/{trackingId}/stop", method = RequestMethod.POST, produces = "application/json")
-    public Tracking stopTracking(@AuthenticationPrincipal Principal user,
-                                 @PathVariable Long trackingId,
-                                 @RequestParam(required = false) final MultipartFile attachment,
-                                 @RequestParam(required = false) final String memo)
-            throws UnstopableTrackingException, IOException {
+    @RequestMapping(value = "/{trackingId}/{action:stop|pause|resume|heartbeat}", method = RequestMethod.POST, produces = "application/json")
+    public Tracking sendAction(@AuthenticationPrincipal final Principal user,
+                               @PathVariable final Long trackingId,
+                               @PathVariable final String action,
+                               @RequestParam(required = false) final MultipartFile attachment,
+                               @RequestParam(required = false) final String memo)
+            throws IOException, UnstopableTrackingException, UnpausableTrackingException, UnresumableTrackingException {
         final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
-        return service.stopTracking(user.getName(), trackingId, Optional.ofNullable(attachmentBytes), Optional.ofNullable(memo));
-    }
-
-    @Secured("ROLE_USER")
-    @RequestMapping(value = "/{trackingId}/pause", method = RequestMethod.POST, produces = "application/json")
-    public Tracking pauseTracking(@AuthenticationPrincipal Principal user,
-                                  @PathVariable Long trackingId,
-                                  @RequestParam(required = false) final MultipartFile attachment,
-                                  @RequestParam(required = false) final String memo)
-            throws UnpausableTrackingException, IOException {
-        final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
-        return service.pauseTracking(user.getName(), trackingId, Optional.ofNullable(attachmentBytes), Optional.ofNullable(memo));
-    }
-
-    @Secured("ROLE_USER")
-    @RequestMapping(value = "/{trackingId}/resume", method = RequestMethod.POST, produces = "application/json")
-    public Tracking resumeTracking(@AuthenticationPrincipal Principal user,
-                                   @PathVariable Long trackingId,
-                                   @RequestParam(required = false) final MultipartFile attachment,
-                                   @RequestParam(required = false) final String memo)
-            throws UnresumableTrackingException, IOException {
-        final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
-        return service.resumeTracking(user.getName(), trackingId, Optional.ofNullable(attachmentBytes), Optional.ofNullable(memo));
-    }
-
-    @Secured("ROLE_USER")
-    @RequestMapping(value = "/{trackingId}/memo", method = RequestMethod.POST, produces = "application/json")
-    public Tracking addMemo(@AuthenticationPrincipal Principal user,
-                            @PathVariable Long trackingId,
-                            @RequestParam(required = false) final MultipartFile attachment,
-                            @RequestParam(required = false) final String memo)
-            throws UnresumableTrackingException, IOException {
-        final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
-        return service.addMemo(user.getName(), trackingId, Optional.ofNullable(attachmentBytes), Optional.ofNullable(memo));
-    }
-
-    @Secured("ROLE_USER")
-    @RequestMapping(value = "/{trackingId}/heartbeat", method = RequestMethod.POST, produces = "application/json")
-    public Tracking doHeartbeat(@AuthenticationPrincipal Principal user,
-                                @PathVariable Long trackingId,
-                                @RequestParam(required = false) final MultipartFile attachment,
-                                @RequestParam(required = false) final String memo)
-            throws UnresumableTrackingException, IOException {
-        final byte[] attachmentBytes = attachment != null ? attachment.getBytes() : null;
-        return service.doHeartbeat(user.getName(), trackingId, Optional.ofNullable(attachmentBytes), Optional.ofNullable(memo));
+        final TrackingAction trackingAction = TrackingAction.valueOf(action.toUpperCase());
+        switch (trackingAction) {
+            case STOP:
+                return service.stopTracking(user.getName(), trackingId, Optional.ofNullable(attachmentBytes), Optional.ofNullable(memo));
+            case PAUSE:
+                return service.pauseTracking(user.getName(), trackingId, Optional.ofNullable(attachmentBytes), Optional.ofNullable(memo));
+            case RESUME:
+                return service.resumeTracking(user.getName(), trackingId, Optional.ofNullable(attachmentBytes), Optional.ofNullable(memo));
+            case HEARTBEAT:
+                return service.doHeartbeat(user.getName(), trackingId, Optional.ofNullable(attachmentBytes), Optional.ofNullable(memo));
+        }
+        throw new IllegalArgumentException("Tracking action is not recognized");
     }
 
 }

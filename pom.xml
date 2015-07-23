@@ -5,7 +5,7 @@
 
 	<groupId>org.gobliip.chronos</groupId>
 	<artifactId>time-tracker</artifactId>
-	<version>0.1.1-SNAPSHOT</version>
+	<version>0.1.1-RELEASE</version>
 	<packaging>jar</packaging>
 
 	<name>time-tracker</name>

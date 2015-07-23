@@ -5,7 +5,7 @@ timedb:
     - .env.database
 timeweb:
   mem_limit: 128m
-  image: gobliip/time-tracker:0.1.0-RELEASE
+  image: gobliip/time-tracker:0.1.1-RELEASE
   ports:
     - "5022:5022"
   expose:

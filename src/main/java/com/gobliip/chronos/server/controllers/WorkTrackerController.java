@@ -3,6 +3,8 @@ package com.gobliip.chronos.server.controllers;
 import com.gobliip.chronos.domain.exception.UnpausableTrackingException;
 import com.gobliip.chronos.domain.exception.UnresumableTrackingException;
 import com.gobliip.chronos.domain.exception.UnstopableTrackingException;
+import com.gobliip.chronos.server.entities.Moment;
+import com.gobliip.chronos.server.entities.WorkPeriod;
 import com.gobliip.chronos.server.entities.WorkSession;
 import com.gobliip.chronos.server.service.WorkTrackerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -32,12 +35,26 @@ public class WorkTrackerController {
     @Autowired
     private WorkTrackerService workTrackerService;
 
+    @RequestMapping(value = "/{workSessionId}/periods", method = RequestMethod.GET)
+    public List<WorkPeriod> getWorkSessionPeriods(
+            @AuthenticationPrincipal final Principal principal,
+            @PathVariable final Long workSessionId
+    ){
+        return workTrackerService.getPeriods(principal.getName(), workSessionId);
+    }
+
+    @RequestMapping(value = "/{workSessionId}/moments", method = RequestMethod.GET)
+    public List<Moment>  getWorkSessionMoments(@AuthenticationPrincipal final Principal principal,
+                                               @PathVariable final Long workSessionId){
+        return workTrackerService.getMoments(principal.getName(), workSessionId);
+    }
+
     @RequestMapping(value = "/{action:start|log|pause|resume|stop}", method = RequestMethod.POST)
     public WorkSession sendAction(
             @AuthenticationPrincipal final Principal principal,
             @PathVariable final String action,
-            @RequestParam(required = false) final int mouseActions,
-            @RequestParam(required = false) final int keyboardActions,
+            @RequestParam(required = false) final Integer mouseActions,
+            @RequestParam(required = false) final Integer keyboardActions,
             @RequestParam(required = false) final MultipartFile attachment,
             @RequestParam(required = false) final String memo
     ) throws IOException, UnresumableTrackingException, UnpausableTrackingException, UnstopableTrackingException {

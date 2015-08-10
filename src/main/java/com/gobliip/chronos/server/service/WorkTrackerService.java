@@ -225,4 +225,12 @@ public class WorkTrackerService {
         return workPeriod;
     }
 
+    public List<Moment> getMoments(String principal, Long workSessionId) {
+        Assert.hasText(principal);
+
+        final WorkSession workSession = entityManager.find(WorkSession.class, workSessionId);
+        if (!principal.equals(workSession.getOwner())) throw new ResourceNotOwnedException(WorkSession.class, workSessionId, principal);
+
+        return workSession.getTracking().getMoments();
+    }
 }

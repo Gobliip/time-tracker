@@ -1,6 +1,6 @@
 package com.gobliip.chronos.server.entities;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.*;
 
 import javax.persistence.*;
 import java.util.LinkedList;
@@ -22,6 +22,9 @@ public class WorkSession extends BaseEntity {
 
     @OneToOne
     @JoinColumn(name = "tracking_id")
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
+    @JsonProperty("trackingId")
     private Tracking tracking;
 
     @Enumerated(EnumType.STRING)
@@ -37,12 +40,15 @@ public class WorkSession extends BaseEntity {
     @Column(name = "mouse_actions_count")
     private int mouseActionsCount;
 
-    @OneToMany(mappedBy = "workSession", cascade = {CascadeType.REFRESH, CascadeType.MERGE, CascadeType.PERSIST, CascadeType.DETACH})
+    @OneToMany(mappedBy = "workSession", cascade = {CascadeType.REFRESH, CascadeType.MERGE, CascadeType.PERSIST, CascadeType.DETACH}, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<WorkPeriod> loggedPeriods = new LinkedList<>();
 
     @OneToOne(cascade = {CascadeType.REFRESH, CascadeType.MERGE, CascadeType.PERSIST, CascadeType.DETACH})
     @JoinColumn(name = "last_logged_period_id")
-    @JsonIgnore
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
+    @JsonProperty("lastLoggedPeriodId")
     private WorkPeriod lastLoggedPeriod;
 
     public Long getId() {
